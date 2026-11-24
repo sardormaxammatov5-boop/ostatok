@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Остаток</title>
+  <meta name="description" content="Учёт расходов: сумма на месяц, траты за день и остаток.">
+  <meta name="theme-color" content="#0F3B2F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Остаток">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div class="brand">Остаток</div>
+    <div class="today" id="todayLabel"></div>
+  </header>
+
+  <div class="install" id="installBanner" hidden>
+    <div id="installText"></div>
+    <div class="install-actions">
+      <button type="button" id="installBtn" hidden>Установить</button>
+      <button type="button" class="ghost" id="installClose" aria-label="Скрыть подсказку">×</button>
+    </div>
+  </div>
+
+  <p class="note" id="note" hidden></p>
+  <div class="loading" id="loading">Загружаю ваши данные…</div>
+
+  <section class="card" id="setup" hidden aria-labelledby="setupTitle">
+    <h2 id="setupTitle">Сколько денег на месяц?</h2>
+    <p class="hint">Зарплата или любая сумма, которую вы планируете потратить за месяц. Потом её можно изменить.</p>
+    <form id="setupForm" class="stack" novalidate>
+      <div class="amount-wrap">
+        <input id="setupAmount" class="money" inputmode="numeric" autocomplete="off" placeholder="5 000 000" aria-label="Сумма на месяц">
+        <span class="suffix">сум</span>
+      </div>
+      <p class="error" id="setupError" hidden></p>
+      <button class="btn-primary" type="submit">Начать месяц</button>
+    </form>
+  </section>
+
+  <section class="hero" id="hero" hidden aria-label="Баланс месяца">
+    <div class="monthnav">
+      <button class="iconbtn" id="prevMonth" type="button" aria-label="Предыдущий месяц">‹</button>
+      <span id="monthLabel"></span>
+      <button class="iconbtn" id="nextMonth" type="button" aria-label="Следующий месяц">›</button>
+    </div>
+    <div class="eyebrow" id="remainLabel">Остаток</div>
+    <div class="big"><span class="val num" id="remain">0</span><span class="cur">сум</span></div>
+    <div class="bar" aria-hidden="true"><i id="heroBar"></i></div>
+    <dl class="facts">
+      <div><dt>Потрачено</dt><dd class="num" id="spentTotal">0</dd></div>
+      <div><dt>На месяц<button class="linkbtn" id="editBudget" type="button">изменить</button></dt><dd class="num" id="budgetTotal">0</dd></div>
+    </dl>
+    <form class="budget-form" id="budgetForm" hidden novalidate>
+      <input id="budgetAmount" class="money" inputmode="numeric" autocomplete="off" aria-label="Новая сумма на месяц">
+      <button class="btn-hero" type="submit">Сохранить</button>
+      <button class="btn-hero ghost" type="button" id="cancelBudget">Отмена</button>
+    </form>
+    <div class="pace" id="pace"></div>
+  </section>
+
+  <section class="card" id="addCard" hidden aria-labelledby="addTitle">
+    <h2 id="addTitle">Новый расход</h2>
+    <form id="addForm" class="stack" novalidate>
+      <div class="amount-wrap">
+        <input id="amount" class="money" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Сумма расхода">
+        <span class="suffix">сум</span>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="noteInput">На что</label>
+          <input id="noteInput" class="input" maxlength="80" autocomplete="off" placeholder="Например, обед">
+        </div>
+        <div class="field">
+          <label for="dateInput">Дата</label>
+          <input id="dateInput" class="input" type="date">
+        </div>
+      </div>
+      <div class="chips" id="catChips" role="group" aria-label="Категория"></div>
+      <p class="error" id="addError" hidden></p>
+      <button class="btn-primary" type="submit">Записать расход</button>
+    </form>
+  </section>
+
+  <section class="card" id="timelineCard" hidden aria-labelledby="timelineTitle">
+    <div class="card-head">
+      <h2 id="timelineTitle">Остаток по дням</h2>
+      <div class="seg" role="group" aria-label="Шаг">
+        <button type="button" id="viewDays" aria-pressed="true">По дням</button>
+        <button type="button" id="viewFive" aria-pressed="false">По 5 дней</button>
+      </div>
+    </div>
+    <p class="legend" id="legend"></p>
+    <div class="ledger" id="timeline"></div>
+  </section>
+
+  <section class="card" id="listCard" hidden aria-labelledby="listTitle">
+    <h2 id="listTitle">Записи за месяц</h2>
+    <div id="list"></div>
+  </section>
+
+  <section class="card" id="catCard" hidden aria-labelledby="catTitle">
+    <h2 id="catTitle">По категориям</h2>
+    <div class="cat-list" id="catList"></div>
+  </section>
+
+  <section class="card" id="backupCard" hidden aria-labelledby="backupTitle">
+    <h2 id="backupTitle">Резервная копия</h2>
+    <p class="hint">Данные хранятся только на этом телефоне. Сохраняйте копию иногда, чтобы перенести записи на новый телефон.</p>
+    <div class="backup-actions">
+      <button class="btn-secondary" type="button" id="exportBtn">Сохранить копию</button>
+      <button class="btn-secondary" type="button" id="importBtn">Восстановить из файла</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="confirm-box" id="importConfirm" hidden>
+      <div id="importText"></div>
+      <div class="backup-actions">
+        <button class="btn-secondary danger" type="button" id="importYes">Заменить данные</button>
+        <button class="btn-secondary" type="button" id="importNo">Отмена</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</main>
+<script src="calc.js"></script>
+<script src="storage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
